@@ -22,7 +22,7 @@ router.use(authenticateToken);
 // This route handles GET requests to /api/tasks
 // req = request object (contains data sent by client)
 // res = response object (used to send data back to client)
-router.get("/tasks", async (req, res) => {
+router.get("/tasks", authenticateToken, async (req, res) => {
   try {
     const tasks = await getAllTasks(req.user.id);
 
