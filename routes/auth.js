@@ -5,21 +5,53 @@ import prisma from "../lib/prisma.js";
 import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const JWT_SECRET = process.env.JWT_SECRET || "a5gqd+c43XsoqaJDuD5Jiys/cEjqmuNtuLGE0xVXTLk=";
 
 // POST /api/auth/register - Register a new user
 router.post("/register", async (req, res) => {
   try {
-    // TODO: Implement the registration logic
     // 1. Validate the input
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email, and password are required",
+      });
+    }
+
     // 2. Check if the user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Email already registered",
+      });
+    }
+
     // 3. Hash the password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
     // 4. Create the user
+    const user = await prisma.user.create({
+      data: { name, email, password: hashedPassword },
+    });
+
     // 5. Generate a JWT token
-    // 6. Return the user data and token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
-
-
+    // 6. Return the user data and token (omit password)
+    const { password: _, ...userWithoutPassword } = user;
+    res.status(201).json({
+      success: true,
+      data: userWithoutPassword,
+      token,
+    });
   } catch (error) {
     console.error("Registration error:", error);
     res.status(500).json({
@@ -33,14 +65,49 @@ router.post("/register", async (req, res) => {
 // POST /api/auth/login - Login user
 router.post("/login", async (req, res) => {
   try {
-    // TODO: Implement the login logic
     // 1. Validate the input
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
     // 2. Check if the user exists
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
     // 3. Compare the password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
     // 4. Generate a JWT token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
     // 5. Return the user data and token
-    
-    
+    const { password: _, ...userWithoutPassword } = user;
+    res.json({
+      success: true,
+      data: userWithoutPassword,
+      token,
+    });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({
@@ -54,9 +121,7 @@ router.post("/login", async (req, res) => {
 // GET /api/auth/me - Get current user profile (protected route)
 router.get("/me", authenticateToken, async (req, res) => {
   try {
-    // req.user will be set by the authenticateToken middleware
     const { password, ...userWithoutPassword } = req.user;
-
     res.json({
       success: true,
       data: userWithoutPassword,
