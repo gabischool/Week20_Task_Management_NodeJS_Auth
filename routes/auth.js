@@ -8,6 +8,7 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 // POST /api/auth/register - Register a new user
+//comment1
 router.post("/register", async (req, res) => {
   try {
     // TODO: Implement the registration logic
