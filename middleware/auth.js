@@ -5,15 +5,38 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 export const authenticateToken = async (req, res, next) => {
   try {
-    // TODO: Implement the authentication middleware
     // 1. Get the token from the request header
-    // 2. Verify the token
-    // 3. Get the user from the database
-    // 4. If the user doesn't exist, throw an error
-    // 5. Attach the user to the request object
-    // 6. Call the next middleware
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
-    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Access token required",
+      });
+    }
+
+    // 2. Verify the token
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    // 3. Get the user from the database
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+    });
+
+    // 4. If the user doesn't exist, throw an error
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // 5. Attach the user to the request object
+    req.user = user;
+
+    // 6. Call the next middleware
+    next();
     
   } catch (error) {
     if (error.name === "JsonWebTokenError") {
