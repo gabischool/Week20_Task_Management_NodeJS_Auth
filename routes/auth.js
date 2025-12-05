@@ -11,13 +11,62 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 router.post("/register", async (req, res) => {
   try {
     // TODO: Implement the registration logic
+    const { email, password, name } = req.body
+    
     // 1. Validate the input
-    // 2. Check if the user already exists
-    // 3. Hash the password
-    // 4. Create the user
-    // 5. Generate a JWT token
-    // 6. Return the user data and token
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        status: 'failed',
+        message: 'You are missing required field, all fields are required'
+      })
+    }
 
+    // 2. Check if the user already exists
+      const existsUser = await prisma.user.findUnique({
+        where: { email: email}
+      })
+     
+      if (existsUser) {
+        return res.status(400).json({
+          status: "failed",
+          "message": "This user already exists in the database"
+        })
+      }
+      
+    // 3. Hash the password
+     const hashPassword = await bcrypt.hash(password, 10)
+
+    // 4. Create the user
+     const newUser = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashPassword,
+       
+      
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true
+
+      }
+     })
+     
+    // 5. Generate a JWT token
+    const token = jwt.sign(
+      { userId: newUser.id, email: newUser.email },
+      process.env.JWT_SECRET || "secretkey",
+      { expiresIn: "24h" }
+    );
+    
+    // 6. Return the user data and token
+     res.status(201).json({
+      status: "success",
+      message: "User registered successfully",
+      user: newUser,
+      token})
+    
 
 
   } catch (error) {
@@ -34,11 +83,54 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     // TODO: Implement the login logic
+    const { email, password} = req.body
+    
     // 1. Validate the input
+    if (!email || !password) {
+      return res.status(400).json({
+        status: 'failed',
+        message: 'You are missing required field, all fields are required'
+      })
+    }
     // 2. Check if the user exists
+    const user = await prisma.user.findUnique({
+      where: { email: email }
+    })
+   
+    if (!user) {
+      return res.status(400).json({
+        status: "failed",
+        "message": "This email does not exists in the database"
+      })
+    }
     // 3. Compare the password
+    const iscomparePassword = await bcrypt.compare(password, user.password)
+
+    if (iscomparePassword == false) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+      })
+    }
+
     // 4. Generate a JWT token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET || "secretkey",
+      { expiresIn: "24h" }
+    );
+
+    const {password: _, ...userInfo } = user
+    
     // 5. Return the user data and token
+    res.status(201).json({
+      status: "success",
+      message: "User logged in successfully",
+      data: {
+        user: userInfo,
+        token
+      }
+     })
     
     
   } catch (error) {
