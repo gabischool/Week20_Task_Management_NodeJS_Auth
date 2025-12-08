@@ -12,6 +12,7 @@ import {
   getSubtasksByTaskId,
 } from "../services/taskServices.js";
 import { authenticateToken } from "../middleware/auth.js";
+import { requireRole } from "../middleware/role.js";
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ router.use(authenticateToken);
 // This route handles GET requests to /api/tasks
 // req = request object (contains data sent by client)
 // res = response object (used to send data back to client)
-router.get("/tasks", async (req, res) => {
+router.get("/tasks", authenticateToken, requireRole("ADMIN"), async (req, res) => {
   try {
     const tasks = await getAllTasks(req.user.id);
 
@@ -42,7 +43,7 @@ router.get("/tasks", async (req, res) => {
 // GET /api/tasks/:id - Get task by ID for the authenticated user
 // :id is a route parameter - it captures the value from the URL
 // Example: /api/tasks/1 will set req.params.id = "1"
-router.get("/tasks/:id", async (req, res) => {
+router.get("/tasks/:id", authenticateToken, requireRole("ADMIN"), async (req, res) => {
   try {
     const { id } = req.params; // Extract the ID from the URL
     const task = await getTaskById(id, req.user.id);
