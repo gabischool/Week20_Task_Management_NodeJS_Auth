@@ -15,11 +15,17 @@ model User {
   email     String   @unique
   password  String
   name      String
+  role Role @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   tasks     Task[]
 
   @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
 }
 
 model Task {
