@@ -22,7 +22,7 @@ router.use(authenticateToken);
 // This route handles GET requests to /api/tasks
 // req = request object (contains data sent by client)
 // res = response object (used to send data back to client)
-router.get("/tasks", async (req, res) => {
+router.get("/tasks", authenticateToken, async (req, res) => {
   try {
     const tasks = await getAllTasks(req.user.id);
 
@@ -42,7 +42,7 @@ router.get("/tasks", async (req, res) => {
 // GET /api/tasks/:id - Get task by ID for the authenticated user
 // :id is a route parameter - it captures the value from the URL
 // Example: /api/tasks/1 will set req.params.id = "1"
-router.get("/tasks/:id", async (req, res) => {
+router.get("/tasks/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params; // Extract the ID from the URL
     const task = await getTaskById(id, req.user.id);
@@ -69,7 +69,7 @@ router.get("/tasks/:id", async (req, res) => {
 // POST /api/tasks - Create new task for the authenticated user
 // POST requests are used to create new resources
 // req.body contains the data sent in the request body
-router.post("/tasks", async (req, res) => {
+router.post("/tasks", authenticateToken, async (req, res) => {
   try {
     const taskData = req.body;
     const newTask = await createTask(taskData, req.user.id);
