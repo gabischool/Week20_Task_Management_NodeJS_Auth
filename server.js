@@ -5,6 +5,7 @@ import bodyParser from "body-parser";
 // Import routes
 import taskRoutes from "./routes/tasks.js";
 import authRoutes from "./routes/auth.js";
+import generateRoutes from "./routes/generate.js";
 import { authenticateToken } from "./middleware/auth.js";
 
 // Initialize Express app
@@ -19,6 +20,8 @@ app.use(bodyParser.urlencoded({ extended: true })); // Parse URL-encoded bodies
 // Mount API routes
 app.use("/api/auth", authRoutes);
 app.use("/api", taskRoutes);
+
+app.use("/api/generate", generateRoutes);
 
 // Protected route example
 app.get("/api/protected", authenticateToken, (req, res) => {
@@ -48,7 +51,7 @@ app.use("*", (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });
 

@@ -9,6 +9,13 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+model AI{
+  id String @id @default(cuid())
+  input String
+  output String
+  createdAt DateTime @default(now())
+  @@map("AIGeneratedTable")
+}
 
 model User {
   id        String   @id @default(cuid())
