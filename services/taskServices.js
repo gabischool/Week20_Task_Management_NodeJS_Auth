@@ -20,7 +20,7 @@ export async function getTaskById(id, userId) {
       include: { subtasks: true },
     });
 
-    if (!task) {
+    if (!task || !userId) {
       throw new Error("Task not found");
     }
 
