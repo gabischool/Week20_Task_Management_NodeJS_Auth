@@ -1,87 +1,54 @@
 # Week 20: Task Management API with Authentication
 
-## RESTful API Development and Authentication Implementation
+Build authentication with **JWT** and **bcrypt**.
 
-## Introduction
+The server and database models are already set up. You fill in the TODOs.
 
-- You have learned the basics of Node.js and Express.js, now let's test your knowledge of how to implement authentication with this Task Management project using JWT tokens and bcrypt password hashing.
+> **Do these 5 things.**
+>
+> 1. Create `.env`
+> 2. Finish `middleware/auth.js`
+> 3. Finish `POST /api/auth/register`
+> 4. Finish `POST /api/auth/login`
+> 5. Protect `GET /api/my-tasks`
 
-### Task 1: Project Setup
+---
 
-1. Fork and Clone this project repository in your terminal
-2. CD into the project base directory `cd Week20_Task_Management_NodeJS_Auth`
+## Setup
+
+1. Fork and clone this repo.
+2. `cd Week20_Task_Management_NodeJS_Auth`
 3. Install dependencies:
-   ```bash
-   npm install
-   ```
-4. Create a `.env` file in the root directory with your database URL and JWT secret
-5. Complete the authentication middleware and routes (see tasks below)
-6. Generate Prisma client and push schema to database:
-   ```bash
-   npm run db:generate
-   npm run db:push
-   ```
-7. Start the server:
-   ```bash
-   npm run dev
-   ```
-8. The server will run on `http://localhost:3000`
 
-### Task 2: MVP Requirements (Minimum Viable Product)
+```bash
+npm install
+```
 
-You need to complete the following:
+4. Create `.env` (next section).
+5. Set up the database:
 
-#### 1. Complete Authentication Middleware - `middleware/auth.js`
+```bash
+npm run db:generate
+npm run db:push
+```
 
-**Location:** `middleware/auth.js`
+6. Start the server:
 
-The middleware file needs to be implemented to verify JWT tokens:
+```bash
+npm run dev
+```
 
-**Requirements:**
+The API runs at **`http://localhost:3000`**.
 
-- Extract JWT token from `Authorization: Bearer <token>` header
-- Verify the token using the JWT_SECRET
-- Find the user in the database using the decoded userId
-- Set `req.user` with the user data (excluding password)
-- Handle token validation errors properly
+---
 
-#### 2. Complete User Registration - `routes/auth.js`
+## What you need to build
 
-**Location:** `routes/auth.js` - POST /register endpoint
+### 1. `.env`
 
-The registration endpoint needs to be implemented:
+> **Do this first.** The app needs this file. Do not commit it.
 
-**Requirements:**
-
-- Validate that email, password, and name are provided
-- Check if a user with the email already exists
-- Hash the password using bcrypt (12 salt rounds)
-- Create the user in the database
-- Generate a JWT token with userId and email
-- Return user data (excluding password) and token
-- Handle duplicate email errors
-
-#### 3. Complete User Login - `routes/auth.js`
-
-**Location:** `routes/auth.js` - POST /login endpoint
-
-The login endpoint needs to be implemented:
-
-**Requirements:**
-
-- Validate that email and password are provided
-- Find the user by email in the database
-- Check if the user exists
-- Compare the provided password with the hashed password using bcrypt
-- Generate a JWT token with userId and email
-- Return user data (excluding password) and token
-- Handle invalid credentials errors
-
-#### 5. Configure Environment Variables - `.env`
-
-**Location:** `.env`
-
-Create a `.env` file with:
+Create `.env` in the project root:
 
 ```env
 DATABASE_URL="your-supabase-database-connection-url"
@@ -89,34 +56,106 @@ JWT_SECRET="your-super-secret-jwt-key"
 PORT=3000
 ```
 
-### Task 3: Testing Your Implementation
+---
 
-You can use Postman or curl to test your endpoints, make sure everything is working correctly.
+### 2. `middleware/auth.js`
 
-## Task 4: Stretch Goals
+Finish `authenticateToken`:
 
-### Add Password Reset Functionality
+1. Get the token from the `Authorization: Bearer <token>` header
+2. Verify the token
+3. Get the user from the database
+4. If the user doesn't exist, throw an error
+5. Attach the user to `req.user` (no password)
+6. Call `next()`
 
-**Objective:** Implement password reset with email verification.
+A bad or expired token should return **401**. That part is already in the `catch` block.
 
-**Requirements:**
+---
 
-1. **Create password reset endpoint** that generates a reset token
-2. **Send reset email** with reset link (simulate with console.log)
-3. **Create reset password endpoint** that validates reset token
-4. **Update user password** in database
+### 3. `POST /api/auth/register`
 
-### Add Email Verification
+**File:** `routes/auth.js`
 
-**Objective:** Implement email verification for new registrations.
+1. Validate the input (`email`, `password`, `name`)
+2. Check if the user already exists
+3. Hash the password with bcrypt (**12** salt rounds)
+4. Create the user
+5. Generate a JWT with `userId` and `email`
+6. Return the user (no password) and the token
 
-**Requirements:**
+---
 
-1. **Add email verification field** to User model
-2. **Generate verification token** during registration
-3. **Send verification email** (simulate with console.log)
-4. **Create verification endpoint** to confirm email
-5. **Update user verification status**
+### 4. `POST /api/auth/login`
 
+**File:** `routes/auth.js`
 
-Good luck with your implementation! 🚀
+1. Validate the input (`email`, `password`)
+2. Check if the user exists
+3. Compare the password with bcrypt
+4. Generate a JWT with `userId` and `email`
+5. Return the user (no password) and the token
+
+Wrong email or password should return **401**.
+
+`GET /api/auth/me` is already written. It works after your middleware sets `req.user`.
+
+---
+
+### 5. `GET /api/my-tasks`
+
+**File:** `routes/tasks.js`
+
+> **This route is public until you protect it.**
+
+1. Import `authenticateToken` from `middleware/auth.js`
+2. Add it to this route
+3. Use `prisma` to get tasks where `userId` is `req.user.id`
+4. Send those tasks back
+
+No token should return **401**.
+
+---
+
+## Test it
+
+Send this header on every protected request:
+
+```
+Authorization: Bearer <token>
+```
+
+| Step | Request | Pass when |
+| --- | --- | --- |
+| 1 | `POST /api/auth/register` | You get a user (no password) and a token |
+| 2 | Register the same email again | The request is rejected |
+| 3 | `POST /api/auth/login` | Right password returns a token. Wrong password returns **401** |
+| 4 | `GET /api/auth/me` with your token | You get the logged-in user |
+| 5 | `GET /api/auth/me` with no token | **401** |
+| 6 | Add a task in Prisma Studio (`npm run db:studio`) with your user id, then `GET /api/my-tasks` | You only see **your** tasks |
+| 7 | `GET /api/my-tasks` with no token | **401** |
+
+---
+
+## Stretch goals
+
+Optional. Finish the 5 required tasks first.
+
+### Password reset
+
+1. Create an endpoint that makes a reset token
+2. Log the reset link with `console.log` (no real email)
+3. Create an endpoint that checks the token
+4. Update the user's password
+
+### Email verification
+
+1. Add a verification field on the User model
+2. Make a verification token when someone registers
+3. Log the verification link with `console.log`
+4. Create an endpoint that checks the token
+5. Mark the user as verified
+
+---
+
+Start with `.env` and the middleware. The other routes need `req.user`.
