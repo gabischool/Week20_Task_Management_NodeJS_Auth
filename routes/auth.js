@@ -10,14 +10,56 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 // POST /api/auth/register - Register a new user
 router.post("/register", async (req, res) => {
   try {
-    // TODO: Implement the registration logic
-    // 1. Validate the input
-    // 2. Check if the user already exists
-    // 3. Hash the password
-    // 4. Create the user
-    // 5. Generate a JWT token
-    // 6. Return the user data and token
+    const { name, email, password} = req.body;
 
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email and password are required"
+      });
+    }
+    const existingUser = await prisma.user.findUnique({
+      where: { email} ,
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already exists",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = await prisma.user.create({
+
+      data:{
+        name,
+        email,
+        password: hashedPassword,
+
+      },
+      select:{
+        id: true,
+        name: true,
+        email: true,
+      },
+
+    })
+
+    const token = jwt.sign({ userId: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h"}
+    
+    );
+
+    return res.status(201).json({
+      success: true,
+      user,
+      token,
+
+    });
+    
 
 
   } catch (error) {
@@ -33,12 +75,62 @@ router.post("/register", async (req, res) => {
 // POST /api/auth/login - Login user
 router.post("/login", async (req, res) => {
   try {
-    // TODO: Implement the login logic
-    // 1. Validate the input
-    // 2. Check if the user exists
-    // 3. Compare the password
-    // 4. Generate a JWT token
-    // 5. Return the user data and token
+    
+    const { email, password } = req.body;
+
+    if (!email || !password ) {
+
+      return res.status(400).json({
+
+        success: false,
+        message: "Email and Password are required",
+      });
+    }
+
+
+    const user = await prisma.user.findUnique({
+      where: { email},
+    });
+
+    if(!user) {
+
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+
+    const isPasswordValid = await bcrypt.compare(
+      password, 
+      user.password 
+
+    );
+
+    if(!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h"}
+
+    );
+
+
+    return res.status(200).json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+      token,
+    });
     
     
   } catch (error) {
