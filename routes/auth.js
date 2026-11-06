@@ -9,17 +9,38 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 // POST /api/auth/register - Register a new user
 router.post("/register", async (req, res) => {
+  const { name, email, password } = req.body;
   try {
     // TODO: Implement the registration logic
     // 1. Validate the input
+    if (!name || !email || !password)
+      return res.status(400).json({ error: "all the fiekds are required" });
+
     // 2. Check if the user already exists
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser)
+      return res.status(400).json({ error: "Email already registered" });
+
     // 3. Hash the password
+
+    const saltRound = await bcrypt.hash(password, 10);
     // 4. Create the user
+    const user = await prisma.user.create({
+      data: { name, email, password: saltRound },
+    });
+
     // 5. Generate a JWT token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
     // 6. Return the user data and token
-
-
-
+    res.json({
+      user: { id: user.id, name: user.name, email: user.email },
+      token,
+    });
   } catch (error) {
     console.error("Registration error:", error);
     res.status(500).json({
@@ -32,15 +53,31 @@ router.post("/register", async (req, res) => {
 
 // POST /api/auth/login - Login user
 router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
   try {
     // TODO: Implement the login logic
     // 1. Validate the input
+    if (!email || !password)
+      return res.status(400).json({ error: "Email and password required" });
     // 2. Check if the user exists
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user)
+      return res.status(400).json({ error: "Invalid Email or Password" });
     // 3. Compare the password
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid)
+      return res.status(400).json({ error: "Invalid Email or Password" });
     // 4. Generate a JWT token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
     // 5. Return the user data and token
-    
-    
+    res.json({
+      user: { id: user.id, name: user.name, email: user.email },
+      token,
+    });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({
